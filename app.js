@@ -43,7 +43,7 @@ function renderSyncBar() {
 const views = ['home', 'vocab', 'mcq', 'written'];
 const titles = { home: '계량심리 용어 퀴즈', vocab: '단어장', mcq: '객관식 퀴즈', written: '주관식 퀴즈' };
 
-function showView(name) {
+function renderView(name) {
   views.forEach(v => document.getElementById('view-' + v).classList.toggle('active', v === name));
   document.getElementById('headerTitle').textContent = titles[name];
   document.getElementById('backBtn').style.visibility = name === 'home' ? 'hidden' : 'visible';
@@ -52,7 +52,26 @@ function showView(name) {
   if (name === 'written') startWritten();
 }
 
-document.getElementById('backBtn').addEventListener('click', () => showView('home'));
+// 화면 전환 시 히스토리에 기록 -> 안드로이드 뒤로가기를 누르면
+// 앱 종료 대신 popstate가 발생해 이전 화면(초기 화면)으로 돌아감
+function showView(name) {
+  if (name === 'home') {
+    history.pushState({ view: 'home' }, '', '#home');
+  } else {
+    history.pushState({ view: name }, '', '#' + name);
+  }
+  renderView(name);
+}
+
+window.addEventListener('popstate', (e) => {
+  const name = (e.state && e.state.view) || 'home';
+  renderView(name);
+});
+
+// 최초 진입 시 히스토리에 home 상태를 깔아둠 (없으면 첫 뒤로가기에서 바로 종료됨)
+history.replaceState({ view: 'home' }, '', '#home');
+
+document.getElementById('backBtn').addEventListener('click', () => history.back());
 document.querySelectorAll('.menu-btn').forEach(btn => {
   btn.addEventListener('click', () => showView(btn.dataset.view));
 });
