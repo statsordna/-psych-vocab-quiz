@@ -48,8 +48,34 @@ function renderView(name) {
   document.getElementById('headerTitle').textContent = titles[name];
   document.getElementById('backBtn').style.visibility = name === 'home' ? 'hidden' : 'visible';
   if (name === 'vocab') renderVocabList();
-  if (name === 'mcq') startMcq();
-  if (name === 'written') startWritten();
+  if (name === 'mcq') showMcqSetup();
+  if (name === 'written') showWrittenSetup();
+}
+
+function showSubSection(viewName, activeId) {
+  document.querySelectorAll('#view-' + viewName + ' .sub-section')
+    .forEach(el => el.classList.toggle('active', el.id === activeId));
+}
+
+// 문항 수 선택 칩 렌더링 (10/20/30/전체 + 직접 입력)
+function renderCountChips(elId, onPick) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const total = GLOSSARY.length;
+  const presets = [10, 20, 30].filter(c => c < total);
+  el.innerHTML = '';
+  presets.forEach(c => {
+    const chip = document.createElement('button');
+    chip.className = 'chip';
+    chip.textContent = c + '개';
+    chip.onclick = () => onPick(c);
+    el.appendChild(chip);
+  });
+  const allChip = document.createElement('button');
+  allChip.className = 'chip';
+  allChip.textContent = `전체(${total}개)`;
+  allChip.onclick = () => onPick(total);
+  el.appendChild(allChip);
 }
 
 // 화면 전환 시 히스토리에 기록 -> 안드로이드 뒤로가기를 누르면
@@ -133,18 +159,30 @@ function shuffle(arr) {
 }
 
 // ===== 객관식 퀴즈 =====
-let mcqQueue = [], mcqIndex = 0, mcqCorrectCount = 0, mcqAnswered = false;
+let mcqQueue = [], mcqIndex = 0, mcqCorrectCount = 0, mcqAnswered = false, mcqWrongList = [];
 
-function startMcq() {
+function showMcqSetup() {
   if (!GLOSSARY.length) return;
-  mcqQueue = shuffle(GLOSSARY);
-  mcqIndex = 0; mcqCorrectCount = 0;
+  showSubSection('mcq', 'mcqSetup');
+  document.getElementById('mcqCountInput').value = '';
+  renderCountChips('mcqCountChips', n => beginMcqQuiz(n));
+}
+
+document.getElementById('mcqStartBtn').addEventListener('click', () => {
+  const v = parseInt(document.getElementById('mcqCountInput').value, 10);
+  const n = (v && v > 0) ? Math.min(v, GLOSSARY.length) : 10;
+  beginMcqQuiz(n);
+});
+
+function beginMcqQuiz(n) {
+  showSubSection('mcq', 'mcqQuiz');
+  mcqQueue = shuffle(GLOSSARY).slice(0, Math.min(n, GLOSSARY.length));
+  mcqIndex = 0; mcqCorrectCount = 0; mcqWrongList = [];
   document.getElementById('mcqNextBtn').style.display = 'none';
   nextMcq();
 }
 
 function nextMcq() {
-  if (mcqIndex >= mcqQueue.length) { mcqQueue = shuffle(GLOSSARY); mcqIndex = 0; }
   const correct = mcqQueue[mcqIndex];
   const distractors = shuffle(GLOSSARY.filter(g => g.kr !== correct.kr)).slice(0, 3);
   const options = shuffle([correct, ...distractors]);
@@ -169,6 +207,7 @@ function nextMcq() {
       else {
         btn.classList.add('wrong');
         [...optWrap.children].find(b => b.textContent === correct.kr)?.classList.add('correct');
+        mcqWrongList.push({ en: correct.en, def: correct.def, correctKr: correct.kr, yourKr: opt.kr });
       }
       [...optWrap.children].forEach(b => b.disabled = true);
       document.getElementById('mcqScore').textContent = `정답 ${mcqCorrectCount}개`;
@@ -177,20 +216,63 @@ function nextMcq() {
     optWrap.appendChild(btn);
   });
 }
-document.getElementById('mcqNextBtn').addEventListener('click', () => { mcqIndex++; nextMcq(); });
+document.getElementById('mcqNextBtn').addEventListener('click', () => {
+  mcqIndex++;
+  if (mcqIndex >= mcqQueue.length) showMcqResult();
+  else nextMcq();
+});
+
+function showMcqResult() {
+  showSubSection('mcq', 'mcqResult');
+  const total = mcqQueue.length;
+  const score = Math.round((mcqCorrectCount / total) * 100);
+  let html = `
+    <div class="result-summary">
+      <div class="result-score">${mcqCorrectCount} / ${total}</div>
+      <div class="result-sub">${score}점</div>
+    </div>`;
+  if (mcqWrongList.length) {
+    html += `<div class="result-wrong-title">틀린 문제 (${mcqWrongList.length}개)</div>`;
+    html += mcqWrongList.map(w => `
+      <div class="wrong-card">
+        <div class="en">${escapeHtml(w.en)}</div>
+        <div class="your">내 답: ${escapeHtml(w.yourKr)}</div>
+        <div class="correct-line">정답: ${escapeHtml(w.correctKr)}</div>
+        <div class="def">${escapeHtml(w.def)}</div>
+      </div>`).join('');
+  }
+  html += `
+    <button class="primary-btn" id="mcqRetryBtn">다시 풀기</button>
+    <button class="secondary-btn" id="mcqHomeBtn">처음으로</button>`;
+  document.getElementById('mcqResult').innerHTML = html;
+  document.getElementById('mcqRetryBtn').onclick = showMcqSetup;
+  document.getElementById('mcqHomeBtn').onclick = () => showView('home');
+}
 
 // ===== 주관식 퀴즈 (유사도 채점) =====
-let wrQueue = [], wrIndex = 0, wrCorrectCount = 0, wrRetrying = false, wrFirstAttemptText = '';
+let wrQueue = [], wrIndex = 0, wrCorrectCount = 0, wrRetrying = false, wrFirstAttemptText = '', wrWrongList = [];
 
-function startWritten() {
+function showWrittenSetup() {
   if (!GLOSSARY.length) return;
-  wrQueue = shuffle(GLOSSARY);
-  wrIndex = 0; wrCorrectCount = 0;
+  showSubSection('written', 'wrSetup');
+  document.getElementById('wrCountInput').value = '';
+  renderCountChips('wrCountChips', n => beginWrittenQuiz(n));
+}
+
+document.getElementById('wrStartBtn').addEventListener('click', () => {
+  const v = parseInt(document.getElementById('wrCountInput').value, 10);
+  const n = (v && v > 0) ? Math.min(v, GLOSSARY.length) : 10;
+  beginWrittenQuiz(n);
+});
+
+function beginWrittenQuiz(n) {
+  showSubSection('written', 'wrQuiz');
+  wrQueue = shuffle(GLOSSARY).slice(0, Math.min(n, GLOSSARY.length));
+  wrIndex = 0; wrCorrectCount = 0; wrWrongList = [];
   nextWritten();
 }
 
 function nextWritten() {
-  if (wrIndex >= wrQueue.length) { wrQueue = shuffle(GLOSSARY); wrIndex = 0; }
   const item = wrQueue[wrIndex];
   wrRetrying = false; wrFirstAttemptText = '';
 
@@ -250,7 +332,7 @@ document.getElementById('wrSubmitBtn').addEventListener('click', () => {
   if (!wrRetrying) {
     const score = scoreAnswer(userText, item.def);
     if (score >= SCORE_CORRECT) {
-      finishWritten(true, item);
+      finishWritten(true, item, userText);
     } else if (score >= SCORE_RETRY) {
       wrRetrying = true;
       wrFirstAttemptText = userText;
@@ -258,17 +340,17 @@ document.getElementById('wrSubmitBtn').addEventListener('click', () => {
       ansEl.value = '';
       ansEl.focus();
     } else {
-      finishWritten(false, item);
+      finishWritten(false, item, userText);
     }
   } else {
     // 재시도: 두 답변을 합쳐서 누적 평가
     const combined = wrFirstAttemptText + ' ' + userText;
     const score = scoreAnswer(combined, item.def);
-    finishWritten(score >= SCORE_CORRECT, item);
+    finishWritten(score >= SCORE_CORRECT, item, combined);
   }
 });
 
-function finishWritten(isCorrect, item) {
+function finishWritten(isCorrect, item, userText) {
   const fb = document.getElementById('wrFeedback');
   document.getElementById('wrAnswer').disabled = true;
   document.getElementById('wrSubmitBtn').style.display = 'none';
@@ -279,10 +361,42 @@ function finishWritten(isCorrect, item) {
     fb.innerHTML = `<div class="feedback correct">정답입니다! 🎉<div class="answer-line">${escapeHtml(item.def)}</div></div>`;
   } else {
     fb.innerHTML = `<div class="feedback wrong">오답입니다.<div class="answer-line">정답: ${escapeHtml(item.def)}</div></div>`;
+    wrWrongList.push({ en: item.en, kr: item.kr, def: item.def, yourAnswer: userText });
   }
 }
 
-document.getElementById('wrNextBtn').addEventListener('click', () => { wrIndex++; nextWritten(); });
+document.getElementById('wrNextBtn').addEventListener('click', () => {
+  wrIndex++;
+  if (wrIndex >= wrQueue.length) showWrittenResult();
+  else nextWritten();
+});
+
+function showWrittenResult() {
+  showSubSection('written', 'wrResult');
+  const total = wrQueue.length;
+  const score = Math.round((wrCorrectCount / total) * 100);
+  let html = `
+    <div class="result-summary">
+      <div class="result-score">${wrCorrectCount} / ${total}</div>
+      <div class="result-sub">${score}점</div>
+    </div>`;
+  if (wrWrongList.length) {
+    html += `<div class="result-wrong-title">틀린 문제 (${wrWrongList.length}개)</div>`;
+    html += wrWrongList.map(w => `
+      <div class="wrong-card">
+        <div class="en">${escapeHtml(w.en)}</div>
+        <div class="kr">${escapeHtml(w.kr)}</div>
+        <div class="your">내 답: ${escapeHtml(w.yourAnswer) || '(미입력)'}</div>
+        <div class="def">정답: ${escapeHtml(w.def)}</div>
+      </div>`).join('');
+  }
+  html += `
+    <button class="primary-btn" id="wrRetryBtn">다시 풀기</button>
+    <button class="secondary-btn" id="wrHomeBtn">처음으로</button>`;
+  document.getElementById('wrResult').innerHTML = html;
+  document.getElementById('wrRetryBtn').onclick = showWrittenSetup;
+  document.getElementById('wrHomeBtn').onclick = () => showView('home');
+}
 
 // ===== 초기화 =====
 loadGlossary();
