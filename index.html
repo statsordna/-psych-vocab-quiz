@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#4f46e5">
+<title>계량심리 용어 퀴즈</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon.svg">
+<style>
+  :root {
+    --primary: #4f46e5;
+    --primary-dark: #3730a3;
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --text: #1f2330;
+    --muted: #6b7280;
+    --correct: #16a34a;
+    --wrong: #dc2626;
+    --warn: #d97706;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: -apple-system, "Noto Sans KR", "Apple SD Gothic Neo", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overscroll-behavior-y: contain;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  #app { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--primary); color: white;
+    padding: 14px 16px; display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  }
+  header button.back {
+    background: none; border: none; color: white; font-size: 20px; padding: 4px 8px; cursor: pointer;
+  }
+  header h1 { font-size: 17px; margin: 0; font-weight: 600; flex: 1; }
+  main { flex: 1; padding: 16px; padding-bottom: 32px; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .menu-grid { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+  .menu-btn {
+    background: var(--card); border: none; border-radius: 16px; padding: 22px 18px;
+    text-align: left; box-shadow: 0 1px 4px rgba(0,0,0,0.08); cursor: pointer;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .menu-btn .emoji { font-size: 30px; }
+  .menu-btn .label { font-size: 17px; font-weight: 600; }
+  .menu-btn .desc { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .menu-btn:active { transform: scale(0.98); }
+
+  .sync-bar {
+    font-size: 12px; color: var(--muted); text-align: center; margin-top: 18px;
+  }
+  .sync-bar button { background:none;border:none;color:var(--primary);font-size:12px;text-decoration:underline; }
+
+  /* 단어장 */
+  .search-box {
+    width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid #ddd;
+    font-size: 15px; margin-bottom: 10px; background: var(--card);
+  }
+  .filter-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px; }
+  .chip {
+    flex-shrink: 0; padding: 6px 12px; border-radius: 999px; border: 1px solid #ddd;
+    background: var(--card); font-size: 13px; color: var(--muted); cursor: pointer; white-space: nowrap;
+  }
+  .chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+  .vocab-card {
+    background: var(--card); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .vocab-card .en { font-weight: 700; font-size: 16px; }
+  .vocab-card .kr { color: var(--primary-dark); font-weight: 600; font-size: 14px; margin-top: 2px; }
+  .vocab-card .def { font-size: 13.5px; color: #374151; margin-top: 6px; line-height: 1.5; }
+  .vocab-card .meta { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .star { color: #f59e0b; }
+
+  /* 퀴즈 공통 */
+  .progress { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .quiz-card {
+    background: var(--card); border-radius: 16px; padding: 22px 18px; margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .quiz-term { font-size: 22px; font-weight: 700; text-align: center; }
+  .quiz-sub { font-size: 14px; color: var(--muted); text-align: center; margin-top: 4px; }
+  .options { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+  .option-btn {
+    background: var(--card); border: 1.5px solid #ddd; border-radius: 12px; padding: 14px;
+    font-size: 15px; text-align: left; cursor: pointer;
+  }
+  .option-btn.correct { background: #ecfdf3; border-color: var(--correct); color: var(--correct); font-weight: 700; }
+  .option-btn.wrong { background: #fef2f2; border-color: var(--wrong); color: var(--wrong); font-weight: 700; }
+  .option-btn:disabled { opacity: 0.7; }
+
+  textarea.answer-box {
+    width: 100%; min-height: 90px; border-radius: 12px; border: 1.5px solid #ddd; padding: 12px;
+    font-size: 15px; font-family: inherit; resize: vertical; margin-top: 14px;
+  }
+  .primary-btn {
+    width: 100%; background: var(--primary); color: white; border: none; border-radius: 12px;
+    padding: 14px; font-size: 16px; font-weight: 600; margin-top: 12px; cursor: pointer;
+  }
+  .primary-btn:disabled { background: #c7c9e8; }
+  .secondary-btn {
+    width: 100%; background: var(--card); color: var(--primary); border: 1.5px solid var(--primary);
+    border-radius: 12px; padding: 14px; font-size: 16px; font-weight: 600; margin-top: 10px; cursor: pointer;
+  }
+  .feedback { margin-top: 14px; padding: 12px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
+  .feedback.correct { background: #ecfdf3; color: var(--correct); }
+  .feedback.wrong { background: #fef2f2; color: var(--wrong); }
+  .feedback.retry { background: #fffbeb; color: var(--warn); }
+  .feedback .answer-line { color: var(--text); margin-top: 6px; font-weight: 500; }
+  .score-bar { display:flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .empty-state { text-align: center; color: var(--muted); margin-top: 40px; font-size: 14px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <button class="back" id="backBtn" style="visibility:hidden">‹</button>
+    <h1 id="headerTitle">계량심리 용어 퀴즈</h1>
+  </header>
+  <main>
+    <div class="view active" id="view-home">
+      <div class="menu-grid">
+        <button class="menu-btn" data-view="vocab">
+          <div class="emoji">📖</div>
+          <div><div class="label">단어장</div><div class="desc">수집한 모든 용어 보기</div></div>
+        </button>
+        <button class="menu-btn" data-view="mcq">
+          <div class="emoji">✅</div>
+          <div><div class="label">객관식 퀴즈</div><div class="desc">영단어 → 국문 용어 4지선다</div></div>
+        </button>
+        <button class="menu-btn" data-view="written">
+          <div class="emoji">✍️</div>
+          <div><div class="label">주관식 퀴즈</div><div class="desc">용어를 보고 설명 적기</div></div>
+        </button>
+      </div>
+      <div class="sync-bar" id="syncBar">불러오는 중...</div>
+    </div>
+
+    <div class="view" id="view-vocab">
+      <input type="text" class="search-box" id="vocabSearch" placeholder="영단어, 국문, 설명 검색">
+      <div class="filter-chips" id="vocabChips"></div>
+      <div id="vocabList"></div>
+    </div>
+
+    <div class="view" id="view-mcq">
+      <div class="score-bar"><span id="mcqProgress"></span><span id="mcqScore"></span></div>
+      <div class="quiz-card">
+        <div class="quiz-sub">이 영단어의 알맞은 국문 용어는?</div>
+        <div class="quiz-term" id="mcqTerm"></div>
+        <div class="options" id="mcqOptions"></div>
+      </div>
+      <button class="primary-btn" id="mcqNextBtn" style="display:none">다음 문제 →</button>
+    </div>
+
+    <div class="view" id="view-written">
+      <div class="score-bar"><span id="wrProgress"></span><span id="wrScore"></span></div>
+      <div class="quiz-card">
+        <div class="quiz-sub" id="wrCategory"></div>
+        <div class="quiz-term" id="wrTerm"></div>
+        <div class="quiz-sub" id="wrKr"></div>
+        <textarea class="answer-box" id="wrAnswer" placeholder="이 용어를 설명해 보세요"></textarea>
+        <button class="primary-btn" id="wrSubmitBtn">제출</button>
+        <div id="wrFeedback"></div>
+      </div>
+      <button class="primary-btn" id="wrNextBtn" style="display:none">다음 문제 →</button>
+    </div>
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
