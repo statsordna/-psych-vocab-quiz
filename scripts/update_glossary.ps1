@@ -29,9 +29,14 @@ foreach ($f in $xlsxFiles) {
     $dirArgs += $extractPath
 }
 
+# PowerShell의 텍스트 파이프(Out-String 등)는 외부 프로그램 stdout을
+# 시스템 코드페이지(cp949 등)로 잘못 디코딩해 한글을 깨뜨릴 수 있다.
+# cmd.exe의 ">" 리다이렉션은 바이트 그대로 파일에 써서 이를 회피한다.
 $glossaryPath = "$RepoDir\glossary.json"
-$json = & $PerlExe $BuildScript @dirArgs | Out-String
-[System.IO.File]::WriteAllText($glossaryPath, $json, (New-Object System.Text.UTF8Encoding($false)))
+$quotedArgs = ($dirArgs | ForEach-Object { '"' + $_ + '"' }) -join ' '
+$cmdLine = '"' + $PerlExe + '" "' + $BuildScript + '" ' + $quotedArgs + ' > "' + $glossaryPath + '"'
+cmd /c $cmdLine
+if ($LASTEXITCODE -ne 0) { throw "glossary.json 생성 실패 (perl exit $LASTEXITCODE)" }
 
 Set-Location $RepoDir
 git add glossary.json
