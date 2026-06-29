@@ -8,10 +8,10 @@
 - **주관식 퀴즈**: 영단어+국문 용어를 보고 설명을 입력. 키워드 겹침 기반으로 유사 답변도 정답 처리하며, 애매한 경우 한 번 더 구체적으로 물어봄
 
 ### 용어 업데이트 (매일)
-1. `C:\Users\andro\Documents\계량심리 용어`에 새 `vocab_YYYY-MM-DD.xlsx` 추가 (매일 아침 8시 새로운 엑셀 용어집이 자동 저장됨)
-2. `scripts/build_glossary.pl`로 전체 xlsx를 다시 파싱해 `glossary.json` 재생성
-3. `git add glossary.json && git commit -m "update glossary" && git push`
-4. 앱은 네트워크 우선으로 `glossary.json`을 불러오므로, 휴대폰에서 앱을 열면(인터넷 연결 시) 자동으로 최신 용어 반영됨
+- `C:\Users\andro\Documents\계량심리 용어`에 새 `vocab_YYYY-MM-DD.xlsx` 추가 (매일 아침 8시 새로운 엑셀 용어집이 자동 저장됨)
+-  `scripts/build_glossary.pl`로 전체 xlsx를 다시 파싱해 `glossary.json` 재생성
+-  `git add glossary.json && git commit -m "update glossary" && git push`
+-  앱은 네트워크 우선으로 `glossary.json`을 불러오므로, 휴대폰에서 앱을 열면(인터넷 연결 시) 자동으로 최신 용어 반영됨
 
 ### 업데이트 예정 사항
-1. 한국심리학회에서 제공하는 심리학 용어 사전을 참고하여 심리학개론 용어 퀴즈 제작 예정 (학부생 수준)
+- 한국심리학회에서 제공하는 심리학 용어 사전을 참고하여 심리학개론 용어 퀴즈 제작 예정 (학부생 수준)
