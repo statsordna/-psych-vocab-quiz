@@ -4,8 +4,18 @@ $ErrorActionPreference = "Stop"
 $VocabDir = "C:\Users\andro\Documents\계량심리 용어"
 $RepoDir  = "$VocabDir\app"
 $PerlExe  = "C:\Program Files\Git\usr\bin\perl.exe"
+$GitExe   = "C:\Program Files\Git\cmd\git.exe"
 $BuildScript = "$RepoDir\scripts\build_glossary.pl"
 $WorkDir = Join-Path $env:TEMP "psych_vocab_build"
+$LogFile = "$RepoDir\scripts\update.log"
+
+function Write-Log($msg) {
+    $line = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') $msg"
+    Add-Content -Path $LogFile -Value $line -Encoding utf8
+    Write-Output $line
+}
+
+Write-Log "=== 업데이트 시작 ==="
 
 if (Test-Path $WorkDir) { Remove-Item $WorkDir -Recurse -Force }
 New-Item -ItemType Directory -Path $WorkDir | Out-Null
@@ -15,9 +25,10 @@ $xlsxFiles = Get-ChildItem -Path $VocabDir -Filter "vocab_*.xlsx" |
     Sort-Object Name
 
 if ($xlsxFiles.Count -eq 0) {
-    Write-Output "엑셀 파일을 찾지 못했습니다: $VocabDir"
+    Write-Log "엑셀 파일을 찾지 못했습니다: $VocabDir"
     exit 0
 }
+Write-Log "대상 파일: $($xlsxFiles.Name -join ', ')"
 
 $dirArgs = @()
 foreach ($f in $xlsxFiles) {
@@ -36,16 +47,24 @@ $glossaryPath = "$RepoDir\glossary.json"
 $quotedArgs = ($dirArgs | ForEach-Object { '"' + $_ + '"' }) -join ' '
 $cmdLine = '"' + $PerlExe + '" "' + $BuildScript + '" ' + $quotedArgs + ' > "' + $glossaryPath + '"'
 cmd /c $cmdLine
-if ($LASTEXITCODE -ne 0) { throw "glossary.json 생성 실패 (perl exit $LASTEXITCODE)" }
+if ($LASTEXITCODE -ne 0) { Write-Log "오류: glossary.json 생성 실패 (perl exit $LASTEXITCODE)"; throw "glossary.json 생성 실패" }
+Write-Log "glossary.json 생성 완료"
 
 Set-Location $RepoDir
-git add glossary.json
-$staged = git diff --cached --quiet; $hasChanges = ($LASTEXITCODE -ne 0)
+& $GitExe add glossary.json
+if ($LASTEXITCODE -ne 0) { Write-Log "오류: git add 실패 (exit $LASTEXITCODE)"; throw "git add 실패" }
+
+& $GitExe diff --cached --quiet
+$hasChanges = ($LASTEXITCODE -ne 0)
 
 if ($hasChanges) {
-    git commit -m "용어집 업데이트 $(Get-Date -Format 'yyyy-MM-dd')"
-    git push origin main
-    Write-Output "glossary.json 업데이트 및 푸시 완료"
+    & $GitExe commit -m "용어집 업데이트 $(Get-Date -Format 'yyyy-MM-dd')"
+    if ($LASTEXITCODE -ne 0) { Write-Log "오류: git commit 실패 (exit $LASTEXITCODE)"; throw "git commit 실패" }
+    & $GitExe pull --rebase origin main
+    if ($LASTEXITCODE -ne 0) { Write-Log "오류: git pull 실패 (exit $LASTEXITCODE)"; throw "git pull 실패" }
+    & $GitExe push origin main
+    if ($LASTEXITCODE -ne 0) { Write-Log "오류: git push 실패 (exit $LASTEXITCODE)"; throw "git push 실패" }
+    Write-Log "glossary.json 업데이트 및 푸시 완료"
 } else {
-    Write-Output "변경 사항 없음 - 푸시 생략"
+    Write-Log "변경 사항 없음 - 푸시 생략"
 }
