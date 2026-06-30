@@ -486,5 +486,11 @@ function renderChangelog() {
 // ===== 초기화 =====
 loadGlossary();
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js');
+    // 새 서비스 워커가 활성화되면 앱을 자동 갱신
+    navigator.serviceWorker.addEventListener('message', e => {
+      if (e.data && e.data.type === 'SW_UPDATED') location.reload();
+    });
+  });
 }
