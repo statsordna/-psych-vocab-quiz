@@ -150,6 +150,35 @@
   .wrong-card .your { font-size: 13px; color: var(--wrong); margin-top: 6px; }
   .wrong-card .correct-line { font-size: 13px; color: var(--correct); margin-top: 4px; }
   .wrong-card .def { font-size: 13px; color: #374151; margin-top: 4px; line-height: 1.45; }
+
+  /* 북마크 */
+  .bookmark-btn {
+    background: none; border: none; font-size: 15px; cursor: pointer;
+    padding: 0 0 0 6px; vertical-align: middle; opacity: 0.3; line-height: 1;
+  }
+  .bookmark-btn.bookmarked { opacity: 1; }
+
+  /* 단어장 정렬 */
+  .sort-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .sort-label { font-size: 12px; color: var(--muted); flex-shrink: 0; }
+  .sort-chips { display: flex; gap: 6px; }
+
+  /* 객관식 모드 선택 */
+  .mode-chips { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .mode-chips .chip { font-size: 13px; padding: 10px 14px; }
+  .setup-divider { border-top: 1px solid #eee; margin: 16px 0; }
+
+  /* 업데이트 로그 */
+  .changelog-entry {
+    background: var(--card); border-radius: 14px; padding: 16px; margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .changelog-date { font-weight: 700; font-size: 15px; color: var(--primary); margin-bottom: 10px; }
+  .changelog-items { margin: 0; padding-left: 18px; }
+  .changelog-items li { font-size: 14px; line-height: 1.6; color: var(--text); margin-bottom: 4px; }
+
+  /* 객관식 보기(설명) */
+  .option-btn { font-size: 14px; line-height: 1.45; }
 </style>
 </head>
 <body>
@@ -173,12 +202,17 @@
           <div class="emoji">✍️</div>
           <div><div class="label">주관식 퀴즈</div><div class="desc">용어를 보고 설명 적기</div></div>
         </button>
+        <button class="menu-btn" data-view="changelog">
+          <div class="emoji">📋</div>
+          <div><div class="label">업데이트 로그</div><div class="desc">앱 수정 내역 보기</div></div>
+        </button>
       </div>
       <div class="sync-bar" id="syncBar">불러오는 중...</div>
     </div>
 
     <div class="view" id="view-vocab">
       <input type="text" class="search-box" id="vocabSearch" placeholder="영단어, 국문, 설명 검색">
+      <div class="sort-row"><span class="sort-label">정렬</span><div class="sort-chips" id="vocabSortChips"></div></div>
       <div class="filter-chips" id="vocabChips"></div>
       <div id="vocabList"></div>
     </div>
@@ -186,6 +220,9 @@
     <div class="view" id="view-mcq">
       <div class="sub-section active" id="mcqSetup">
         <div class="setup-card">
+          <div class="setup-title">퀴즈 유형</div>
+          <div class="mode-chips" id="mcqModeChips"></div>
+          <div class="setup-divider"></div>
           <div class="setup-title">몇 문제를 풀까요?</div>
           <div class="count-chips" id="mcqCountChips"></div>
           <input type="number" class="count-input" id="mcqCountInput" min="1" placeholder="직접 입력">
@@ -195,7 +232,7 @@
       <div class="sub-section" id="mcqQuiz">
         <div class="score-bar"><span id="mcqProgress"></span><span id="mcqScore"></span></div>
         <div class="quiz-card">
-          <div class="quiz-sub">이 영단어의 알맞은 국문 용어는?</div>
+          <div class="quiz-sub" id="mcqSubPrompt"></div>
           <div class="quiz-term" id="mcqTerm"></div>
           <div class="options" id="mcqOptions"></div>
         </div>
@@ -226,6 +263,10 @@
         <button class="primary-btn" id="wrNextBtn" style="display:none">다음 문제 →</button>
       </div>
       <div class="sub-section" id="wrResult"></div>
+    </div>
+
+    <div class="view" id="view-changelog">
+      <div id="changelogList"></div>
     </div>
   </main>
 </div>
