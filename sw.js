@@ -1,4 +1,4 @@
-const CACHE = 'psych-vocab-v5';
+const CACHE = 'psych-vocab-v6';
 const SHELL = ['./', 'index.html', 'app.js', 'manifest.webmanifest', 'icons/icon.svg'];
 
 self.addEventListener('install', e => {

@@ -179,6 +179,13 @@
 
   /* 객관식 보기(설명) */
   .option-btn { font-size: 14px; line-height: 1.45; }
+
+  /* 자주 틀리는 문제 체크박스 */
+  .freq-wrong-label {
+    display: flex; align-items: center; gap: 8px; justify-content: center;
+    font-size: 14px; color: var(--text); margin-top: 14px; cursor: pointer;
+  }
+  .freq-wrong-label input { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
 </style>
 </head>
 <body>
@@ -226,6 +233,7 @@
           <div class="setup-title">몇 문제를 풀까요?</div>
           <div class="count-chips" id="mcqCountChips"></div>
           <input type="number" class="count-input" id="mcqCountInput" min="1" placeholder="직접 입력">
+          <label class="freq-wrong-label"><input type="checkbox" id="mcqFreqWrong"> 자주 틀리는 문제 우선 출제</label>
           <button class="primary-btn" id="mcqStartBtn">시작하기</button>
         </div>
       </div>
@@ -247,6 +255,7 @@
           <div class="setup-title">몇 문제를 풀까요?</div>
           <div class="count-chips" id="wrCountChips"></div>
           <input type="number" class="count-input" id="wrCountInput" min="1" placeholder="직접 입력">
+          <label class="freq-wrong-label"><input type="checkbox" id="wrFreqWrong"> 자주 틀리는 문제 우선 출제</label>
           <button class="primary-btn" id="wrStartBtn">시작하기</button>
         </div>
       </div>
