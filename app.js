@@ -18,7 +18,9 @@ async function loadGlossary() {
     }
   } catch (e) {}
   renderSyncBar();
-  if (document.getElementById('view-vocab').classList.contains('active')) renderVocabList();
+  // 로딩 완료 후 현재 화면을 다시 그림 (새로고침으로 퀴즈/단어장 화면에 진입했을 때 데이터 반영)
+  const active = views.find(v => document.getElementById('view-' + v).classList.contains('active'));
+  if (active && active !== 'home') renderView(active);
 }
 
 function renderSyncBar() {
@@ -92,10 +94,10 @@ window.addEventListener('popstate', e => {
 });
 
 // 새로고침 시 URL 해시에 남아있는 현재 화면을 복원 (실수로 새로고침해도 초기화면으로 튕기지 않게)
+// 실제 렌더링은 모든 정의가 끝난 파일 하단에서 수행한다.
 const initialView = (location.hash || '').replace('#', '');
 const startView = views.includes(initialView) ? initialView : 'home';
 history.replaceState({ view: startView }, '', '#' + startView);
-renderView(startView);
 
 document.getElementById('backBtn').addEventListener('click', () => history.back());
 document.querySelectorAll('.menu-btn').forEach(btn => {
@@ -526,6 +528,7 @@ function renderChangelog() {
 }
 
 // ===== 초기화 =====
+renderView(startView);
 loadGlossary();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
