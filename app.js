@@ -90,7 +90,12 @@ function showView(name) {
 window.addEventListener('popstate', e => {
   renderView((e.state && e.state.view) || 'home');
 });
-history.replaceState({ view: 'home' }, '', '#home');
+
+// 새로고침 시 URL 해시에 남아있는 현재 화면을 복원 (실수로 새로고침해도 초기화면으로 튕기지 않게)
+const initialView = (location.hash || '').replace('#', '');
+const startView = views.includes(initialView) ? initialView : 'home';
+history.replaceState({ view: startView }, '', '#' + startView);
+renderView(startView);
 
 document.getElementById('backBtn').addEventListener('click', () => history.back());
 document.querySelectorAll('.menu-btn').forEach(btn => {
@@ -488,6 +493,12 @@ function showWrittenResult() {
 
 // ===== 업데이트 로그 =====
 const CHANGELOG = [
+  {
+    date: '2026-07-02',
+    items: [
+      '단어장·퀴즈 이용 중 실수로 새로고침해도 초기화면으로 돌아가지 않고 현재 화면을 유지하도록 수정',
+    ]
+  },
   {
     date: '2026-06-30',
     items: [
